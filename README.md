@@ -300,16 +300,6 @@ installed. Generally `ubuntu:18.04` is a good choice.
 
 **RUN:** Excutes the command in the building container.
 
-Some notes:
-
-- when building in Ubuntu containers, use the following idiom because apt repos
-  are not included in the base images and therefore need to be updated:
-
-```bash
-RUN apt-get update && apt-get install \
-  package1 \
-  package2 \
-```
 
 Here's our Dockerfile:
 
@@ -367,12 +357,23 @@ docker run \
 
 ## Extra notes
 
-When building locally and then pushing, *Docker Hub does not show Dockerfiles*
-since the Dockerfile is not included in the image itself. It is better to have
-a GitHub repo and connect that to Docker Hub. Images will then get built
-automatically when the Dockerfile is changed on GitHub. Docker Hub will provide
-a link to that Dockerfile so that it can be inspected by the user.
+- When building locally and then pushing, *Docker Hub does not show
+  Dockerfiles* since the Dockerfile is not included in the image itself. It is
+  better to have a GitHub repo and connect that to Docker Hub. Images will then
+  get built automatically when the Dockerfile is changed on GitHub. Docker Hub
+  will provide a link to that Dockerfile so that it can be inspected by the
+  user.
 
+- when building in Ubuntu containers, use the following idiom because apt repos
+  are not included in the base images and therefore need to be updated. Be sure
+  to include the `-y` argument, otherwise the build will hang waiting for user
+  input.
+
+```bash
+RUN apt-get update && apt-get install -y \
+  package1 \
+  package2 \
+```
 
 ## Resources
 
