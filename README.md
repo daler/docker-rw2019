@@ -1,10 +1,11 @@
 # Spring 2019 Reproducibility Workshop
 
-See [slides/slides.htm](slides/slides.html) for the
-[Remark](https://remarkjs.com) slides.
+Download
+[remark.js slides](https://raw.githubusercontent.com/daler/docker-rw2019/master/slides/slides.html)
+and view locally in a browser.
 
-These are created from a Markdown version of the slides ([slides/slides.md](slides/slides.md))
- using [slides/prep.py](slides/prep.py). It may be easier to copy/paste from
-the Markdown file.
+The slides are created from a Markdown version 
+([slides/slides.md](slides/slides.md)) using [slides/prep.py](slides/prep.py).
+It may be easier to copy/paste from the Markdown file.
 
 The [docker](docker) directory contains a Dockerfile and other configuration options.
