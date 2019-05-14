@@ -22,7 +22,7 @@ dependencies into a standardized unit.
 
 --
 
-Helps resolve "well it works on *my* machine"
+Helps resolve "well, it worked on *my* machine"
 
 --
 
@@ -37,20 +37,24 @@ Popular containerization engines are Docker, rkt, Singularity.
 
 # Docker
 
-This document covers Docker. A severe limitation of Docker is that *it must run
-with root privileges*. It is therefore not allowed on shared systems like HPC
-clusters.
+This document covers Docker, currently the most popular containerization
+system.
 
-On NIH's Biowulf cluster, use Singularity
-(https://hpc.nih.gov/apps/singularity.html). It plays nicely with Docker
-images.
+A major limitation of Docker is that *it must run with root privileges*.
+
+--
+
+It is therefore not allowed on shared systems like HPC clusters. On NIH's
+Biowulf cluster, use Singularity (https://hpc.nih.gov/apps/singularity.html).
 
 ---
 
-# Docker and the cloud
+# Docker, cloud, and scientific workflows
 
-Many web services use Docker as microservices listening on different ports for
-different incoming data. Justifiably gets lots of hype.
+Web services use Docker as microservices on cloud instances listening on
+different ports acting on incoming data.
+
+--
 
 This is a very different architecture from what is useful in science where we
 have:
@@ -60,27 +64,30 @@ have:
 - scripts tied together
 - heterogeneous data from many sources
 
+--
+
+Nevertheless, it is useful invest the effort to containerize especially at the
+end of an analysis for long-term reproducibility.
+
 ---
 
 # Terminology
 
-**Docker Engine:** You need to install this on your computer to run containers
-or build images
+**Docker Engine:** You need to install this on your computer to run Docker
 
 --
 
-**Container:** standardized unit of software. Runs an OS, includes any
-dependencies plus the application
+**Container:** Standardized unit of software. Runs an OS, includes any
+dependencies plus the application.
 
 --
 
-**Image:** build an image, and create many running containers out of it
+**Image:** A file which is a snapshot of a container. 
 
 --
 
 **Dockerfile:** Defines how to create an image. This is where you put your
-effort when building a docker image. Can inherit from other images, install
-software, run things by default
+effort when building a docker image
 
 --
 
@@ -90,6 +97,17 @@ are the big ones.
 --
 
 **Tag:** Label for an image on a registry. By convention holds version information.
+
+---
+
+# Terminology usage
+
+
+We build an *image* from a *Dockerfile*.
+
+We run the image to create a running *container*.
+
+Someone else can run that same image and get an identical running container.
 
 ---
 
@@ -114,34 +132,38 @@ class: middle, center
 
 ## Overview of BioContainers
 
-When working with Docker in bioinformatics, thousands of images are already
-available for your use.
+When working with Docker in bioinformatics, images for thousands of tools are
+already available for your use.
 
-Every bioconda package has a corresponding BioContainers image.
+This is a joint project between [bioconda](https://bioconda.github.io) and
+[BioContainers](https://biocontainers.pro/#/).
 
 We will use an existing container for `samtools`.
 
 ---
 
-## Finding which image to use
+## Finding an image to use
 
 
 - Visit https://bioconda.github.io
+
 - Search for `samtools`
-- It tells us the image is `quay.io/biocontainers/samtools:<tag>` but we need
-  to visit https://quay.io/repository/biocontainers/samtools?tab=tags to see
-  our options are for tags
+
+- It tells us the image is `quay.io/biocontainers/samtools:<tag>` but we need to determine which tag to use.
+
+- Follow the link on that site to visit https://quay.io/repository/biocontainers/samtools?tab=tags
+
 - Use the latest tag unless you have a good reason for another version
 
 --
 
-So we want to use `quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6`.
+So we want to use **`quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6`**
 
 ---
 
 ## Download an example BAM file
 
-We'll use this for demonstrating passing data into containers.
+Download a file to use for demonstrating passing data into containers.
 
 With `wget`:
 
@@ -191,8 +213,8 @@ docker run quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6 samtools
 - download the image if needed
 - run the image as a new container
 - within that running container, call `samtools`
-- the help for `samtools` is printed to `stdout` which is its default behavior
-  when run with no arguments
+- the help for `samtools` is printed to `stdout` (its default behavior
+  when run with no arguments)
 
 ---
 
@@ -200,16 +222,19 @@ docker run quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6 samtools
 
 Use `-it` to drop into an interactive shell in the container.
 
-Anything you do here is ephemeral.
+**Anything you do here is ephemeral.**
 
 ```bash
 docker run -it quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6 samtools
 ```
 
+--
+
 **Explanation:**
 
 - run the image as a new container
 - instead of exiting immediately, drop into an interactive shell
+- type `exit` to exit the container
 
 ---
 
@@ -217,10 +242,14 @@ docker run -it quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6 samtools
 
 The BAM file we downloaded is in binary format; to read it we use `samtools`.
 
-We might logically try the following:
+We might logically try the following.
+
 
 ```bash
-docker run quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6 samtools view y.bam
+# Note the "\" line continuation
+
+docker run quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6 \
+  samtools view y.bam
 ```
 
 --
@@ -240,24 +269,25 @@ What happened?
 A running docker container is isolated. It cannot see anything on your
 computer.
 
-We need to explicitly tell it what is available.
+We need to explicitly tell it what is available with **`-v`**.
 
 --
 
-Use `-v` to mount paths from your local machine to paths inside the container.
+This allows us to mount paths from the host machine to paths inside the container.
 
-```text
-docker run -v <local path>:<container path> <imagename>
+```bash
+docker run -v <host path>:<container path> <imagename>
 ```
 
 --
 
-Notes:
+**Notes:**
 
 - Paths must be absolute
-- Use `$(pwd)` as a shortcut for "current directory".
+- Use **`$(pwd)`** as a shortcut for "current directory".
 - Paths in the container are automatically created recursively
-- The `-v` command should come before the image name, otherwise you'll get errors like this:
+- `-v` should come *before* the image name, otherwise you'll get errors like
+  this:
 
 ```text
 docker: Error response from daemon: OCI runtime create failed:
@@ -281,10 +311,9 @@ docker run \
 
 **Explanation**
 
-- `$(pwd)` is an argument evaluated on the host system, not in the docker
-  container
-- mount the current working directory *outside* the container to the directory
-  `/data` *inside* the container
+- `$(pwd)` is evaluated on the host system
+- current working directory *outside* container becomes the directory `/data`
+  *inside* the container
 - `/data` was created automatically inside the container at run time
 - The result is that the container can see everything in the working directory
   at `/data`, so the command run inside the container reflects this location
@@ -324,7 +353,7 @@ docker run \
 **Explanation**
 
 - run `samtools` in the container, which prints to `stdout`
-- bash on the host interprets `>` as the end of a command, and therefore the end of the `docker run` call
+- bash on the host interprets **`>`** as the end of a command, and therefore the end of the `docker run` call
 - `stdout` is redirected to a file *back on the host*, `result.sam`
 
 ---
