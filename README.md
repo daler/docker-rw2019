@@ -1,18 +1,31 @@
+
+class: middle, center
+
 # Spring 2019 Reproducibility Workshop: "Containerization and Docker"
 
-Ryan Dale, Ph.D.
+.left[Ryan Dale, Ph.D.]
 
 *Opinions are my own; nothing here should be construed as an endorsement*
 
-## Overview
+---
+
+# Containerization
 
 Containerization is a way of packaging an application with all of its
 dependencies into a standardized unit.
 
+--
+
 This helps solve the "well it works on *my* machine" problem of
 reproducibility.
 
+--
+
 Popular containerization engines are Docker, rkt, Singularity.
+
+---
+
+# Docker
 
 This document covers Docker. A severe limitation of Docker is that *it must run
 with root privileges*. It is therefore not allowed on shared systems like HPC
@@ -22,27 +35,41 @@ On NIH's Biowulf cluster, use Singularity
 (https://hpc.nih.gov/apps/singularity.html). It plays nicely with Docker
 images.
 
-## Terminology
+---
+
+# Terminology
 
 **Docker Engine:** You need to install this on your computer to run containers
 or build images
 
+--
+
 **Container:** standardized unit of software. Runs an OS, includes any
 dependencies plus the application
 
+--
+
 **Image:** holds layers that, when mounted on the Docker engine, operate as
 a container
+
+--
 
 **Dockerfile:** Defines how to create an image. This is where you put your
 effort when building a docker image. Can inherit from other images, install
 software, run things by default
 
+--
+
 **Registry:** online location that stores Docker images. Docker Hub and quay.io
 are the big ones.
 
+--
+
 **Tag:** Label for an image on a registry. By convention holds version information.
 
-## Getting started
+---
+
+# Getting started
 
 Prerequisites:
 
@@ -53,14 +80,39 @@ Prerequisites:
 docker run -it hello-world
 ```
 
-## Worked example
+---
 
-This example gradually builds up in complexity.
+class: middle, center
 
-### Download an example SAM file
+# Worked example
 
-Let's get some example data to work with. This is a small SAM file from the
-samtools GitHub repo that we'll use to demonstrate how to use Docker.
+---
+
+## Overview of BioContainers
+
+When working with Docker in bioinformatics, thousands of images are already
+available for your use. We will use an existing container for `samtools`.
+
+--
+
+Here is the process of finding which image to use:
+
+- Visit https://bioconda.github.io
+- Search for `samtools`
+- It tells us the image is `quay.io/biocontainers/samtools:<tag>` but we need
+  to visit https://quay.io/repository/biocontainers/samtools?tab=tags to see
+  our options are for tags
+- Use the latest tag unless you have a good reason for another version
+
+--
+
+So we want to use `quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6`.
+
+---
+
+## Download an example BAM file
+
+We'll use this for demonstrating passing data into containers.
 
 With `wget`:
 
@@ -77,34 +129,33 @@ curl https://github.com/daler/pybedtools/raw/master/pybedtools/test/data/y.bam >
 Or download the file with web browser from:
 https://github.com/daler/pybedtools/raw/master/pybedtools/test/data/y.bam
 
+---
 
-### Overview of BioContainers
-
-When working with Docker in bioinformatics, thousands of images are already
-available for your use. We will use an existing container for `samtools`. Here
-is the process of finding which image to use:
-
-- Visit https://bioconda.github.io
-- Search for `samtools`
-- It tells us the image is `quay.io/biocontainers/samtools:<tag>` but we need
-  to visit https://quay.io/repository/biocontainers/samtools?tab=tags to see
-  our options are for tags
-- Use the latest tag unless you have a good reason for another version
-
-So we want to use `quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6`.
-
-Here's how to use it. This will pull and run the container:
+## Running the container
 
 ```bash
 docker run quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6
 ```
 
-Since there's no default command, nothing happened. So we specify the command
-to run (`samtools`):
+--
+
+Explanation:
+
+- download the image if needed
+- run the image as a new container
+- since there's no default command, nothing happened.
+
+---
+
+## Running the container again
+
+We need to give it a command to run (`samtools`):
 
 ```bash
 docker run quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6 samtools
 ```
+
+--
 
 Explanation:
 
@@ -114,7 +165,9 @@ Explanation:
 - the help for `samtools` is printed to `stdout` which is its default behavior
   when run with no arguments
 
-### Try viewing the downloaded file
+---
+
+## Try viewing the downloaded file
 
 To view the reads in that SAM file we downloaded using `samtools`, we might
 logically try the following:
@@ -122,6 +175,8 @@ logically try the following:
 ```bash
 docker run quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6 samtools view y.bam
 ```
+
+--
 
 but this returns:
 
@@ -131,10 +186,14 @@ but this returns:
 
 What happened?
 
-### Making data available to the container
+---
+
+## Making data available to the container
 
 A running docker container is isolated. It cannot see anything on your
 computer; you need to explicitly tell it what is available.
+
+--
 
 Use `-v` to mount paths from your local machine to paths inside the container.
 
@@ -148,6 +207,10 @@ container_linux.go:344: starting container process caused "exec: \"-v\":
 executable file not found in $PATH": unknown.
 ```
 
+---
+
+## Mounting the current directory
+
 This works:
 
 ```bash
@@ -156,7 +219,21 @@ docker run \
   samtools view data/y.bam
 ```
 
+Explanation:
+
+- mount the current working directory *outside* the container to the directory
+  `/data` *inside* the container
+- `$(pwd)` is an argument evaluated on the host system, not in the docker
+  container
+- `/data` was created automatically inside the container at run time
+- The result is that the container can see everything in the working directory
+  at `/data`, so the command run inside the container reflects this location
+  and we get output as expected
+
+---
+
 Output should be:
+
 
 ```
 AAGGGTCGT:DBR4KXP1:220:C27T3ACXX:7:1211:12450:44710     16      chr1    16286   255     3S33M   *       0       0    ATCTACACTGGGAGACACAGCAGTGAAGCTGAAATG     HGIIFGEIJJJJJJJIJJJJIJIJJJJJIJJJJJJJ    NH:i:1  HI:i:1  AS:i:32 nM:i:0  NM:i:0MD:Z:33 jM:B:c,-1       jI:B:i,-1       RG:Z:foo
@@ -183,16 +260,6 @@ GCCGGTCTC:DBR4KXP1:220:C27T3ACXX:7:1107:16157:39614     16      chr1    46637   
 ```
 
 
-Explanation:
-
-- mount the current working directory *outside* the container to the directory
-  `/data` *inside* the container
-- `$(pwd)` is an argument evaluated on the host system, not in the docker
-  container
-- `/data` was created automatically inside the container at run time
-- The result is that the container can see everything in the working directory
-  at `/data`, so the command run inside the container reflects this location
-  and we get output as expected
 
 ### Getting data back out of the container
 
