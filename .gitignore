@@ -1,0 +1,4 @@
+results
+demo/*.bam
+demo2/SRR*
+demo/*.sam
