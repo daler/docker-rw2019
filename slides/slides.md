@@ -6,13 +6,23 @@ class: middle, center
 .left[Scientific Information Officer, NICHD]
 .left[Head, NICHD Bioinformatics and Scientific Programming Core]
 
-Slides & code available at https://github.com/daler/docker-rw2019
+*Slides & code available at [github.com/daler/docker-rw2019](https://github.com/daler/docker-rw2019)*
 
 ---
 
 class: middle, center
 
 *Opinions are my own; nothing here should be construed as an endorsement*
+
+
+---
+
+# Reproducibility stack
+
+
+<img src=fig1.jpg width=100%></img>
+
+https://doi.org/10.1016/j.cels.2018.03.014
 
 ---
 
@@ -38,37 +48,39 @@ Popular containerization engines are Docker, rkt, Singularity.
 
 # Docker
 
-This document covers Docker, currently the most popular containerization
-system.
+Docker is currently the most popular containerization system.
 
 A major limitation of Docker is that *it must run with root privileges*.
 
 --
 
-It is therefore not allowed on shared systems like HPC clusters. On NIH's
+It is not allowed on shared systems like HPC clusters. On NIH's
 Biowulf cluster, use Singularity (https://hpc.nih.gov/apps/singularity.html).
 
 ---
 
 # Docker, cloud, and scientific workflows
 
-Web services use Docker as microservices on cloud instances listening on
-different ports acting on incoming data.
+Containers are great for web applications:
+
+- microservices split a single application into pieces
+- microservices can scale independently
+- independent upgrades
+- sophisticated networking tools
 
 --
 
-This is a very different architecture from what is useful in science where we
-have:
+This is a different architecture compared to scientific workflows:
 
-- many different interdependent tools
+- iterative analysis
 - interactive exploration
-- scripts tied together
+- every experiment is different
 - heterogeneous data from many sources
 
 --
 
-Nevertheless, it is useful invest the effort to containerize especially at the
-end of an analysis for long-term reproducibility.
+It is often worth the investment to containerize especially at the end of an
+analysis for long-term reproducibility.
 
 --
 
@@ -216,7 +228,9 @@ docker run quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6
 **Explanation**
 
 - download the image if needed
+
 - run the image as a new container
+
 - since there's no default command, after downloading and running nothing
   happened.
 
@@ -227,7 +241,11 @@ docker run quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6
 We need to give it a command to run (`samtools`):
 
 ```bash
-docker run quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6 samtools
+# Note the "\" line continuation
+# so the command fits on screen
+
+docker run quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6 \
+  samtools
 ```
 
 --
@@ -235,8 +253,11 @@ docker run quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6 samtools
 **Explanation**
 
 - download the image if needed (it didn't need to this time)
+
 - run the image as a new container
+
 - within that running container, call `samtools`
+
 - the help for `samtools` is printed to `stdout` (its default behavior
   when run with no arguments)
 
@@ -249,7 +270,9 @@ Use **`-it`** to drop into an interactive shell in the container.
 **Anything you do here is ephemeral.**
 
 ```bash
-docker run -it quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6
+docker run \
+  -it \
+  quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6
 ```
 
 --
@@ -257,10 +280,13 @@ docker run -it quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6
 **Explanation:**
 
 - run the image as a new container
+
 - instead of exiting immediately, drop into an interactive shell
+
 - type `exit` to exit the container
 
 ---
+
 
 # View the downloaded file using the container
 
@@ -272,8 +298,6 @@ We might logically try the following.
 
 
 ```bash
-# Note the "\" line continuation
-
 docker run quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6 \
   samtools view y.bam
 ```
@@ -312,7 +336,9 @@ docker run -v <host path>:<container path> <imagename>
 **Notes:**
 
 - Paths must be absolute
+
 - Paths in the container are automatically created recursively
+
 - **`-v`** should come *before* the image name, otherwise you'll get errors like
   this:
 
@@ -330,8 +356,9 @@ Use `-v` to mount local paths inside the container:
 
 ```bash
 docker run \
-  -v $(pwd):/data quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6 \
-  samtools view data/y.bam
+  -v $(pwd):/data \
+  quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6 \
+  samtools view /data/y.bam
 ```
 
 --
@@ -355,16 +382,20 @@ Use `-v` to mount local paths inside the container:
 
 ```bash
 docker run \
-  -v $(pwd):/data quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6 \
-  samtools view data/y.bam
+  -v $(pwd):/data \
+  quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6 \
+  samtools view /data/y.bam
 ```
 
 **Explanation**
 
 - `$(pwd)` is evaluated on the host system
+
 - current working directory *outside* container becomes the directory `/data`
   *inside* the container
+
 - `/data` was created automatically inside the container at run time
+
 - The result is that the container can see everything in the working directory
   at `/data`, so the command run inside the container reflects this location
   and we get output as expected
@@ -392,7 +423,9 @@ docker run \
 **Explanation**
 
 - run `samtools` in the container, which prints to `stdout`
+
 - bash on the host interprets **`>`** as the end of a command, and therefore the end of the `docker run` call
+
 - `stdout` is redirected to a file *back on the host*, `result.sam`
 
 ---
@@ -416,12 +449,17 @@ docker run \
 
 **Explanation**
 
-- after creating a local directory `results`, mount it to the container's `/tmp` directory
+- create a local directory `results`
+
+- mount it to the container's `/tmp` directory
+
 - `bash -c` means "commands are to be read from the following string"
+
 - samtools output redirects to a file in `/tmp`, which is mapped to the local
   directory `results`.
-- since the redirect `>` happens in the command executed by bash inside the
-  container, we use container-appropriate paths.
+
+- `>` is executed by bash inside the container so we use container-appropriate paths.
+
 - On Linux, **user/group ownership of created files is `root`**
 
 ---
@@ -536,7 +574,7 @@ inside the image.
 
 ---
 
-# `Dockerfile`
+# Dockerfile
 
 ```docker
 # This Dockerfile installs samtools, fastqc, R, and DESeq2
@@ -550,7 +588,8 @@ RUN conda config --add channels defaults && \
     conda config --add channels bioconda && \
     conda config --add channels conda-forge
 
-# Install packages. Pinning versions is optional but good practice
+# Install packages. Pinning versions is optional
+# but good practice
 RUN conda install \
     "bioconductor-deseq2==1.22.1" \
     "fastqc==0.11.8" \
@@ -578,6 +617,7 @@ docker build . -t daler/docker-rw2019
 
 - Execute the commands in the Dockerfile in the current directory (this may
   take some time)
+
 - Save the resulting image as `daler/docker-rw2019`
 
 --
@@ -648,6 +688,7 @@ docker run \
 **Explanation**
 
 - in the container we built (which has everything we need), run the bash script
+
 - the bash script also runs the R script
 
 ---
@@ -691,6 +732,18 @@ RUN apt-get update && apt-get install -y \
 
 # Resources
 
+- [Practical computational reproducibility in the life sciences](https://www.sciencedirect.com/science/article/pii/S2405471218301406)
+
+- [Docker documentation](https://docs.docker.com/get-started/)
+
+- [Singularity on Biowulf](https://hpc.nih.gov/apps/singularity.html)
+
 - BioContainers [best-practices](https://biocontainers-edu.readthedocs.io/en/latest/best_practices.html)
+
 - [BioContainers quickstart](http://biocontainers-edu.biocontainers.pro/en/latest/running_example.html)
+
+- [Multi-package containers](https://biocontainers.pro/#/multipackage) (with a corresponding [github
+  repo](https://github.com/BioContainers/multi-package-containers)) still in
+  development
+
 - [Awesome Docker](https://github.com/veggiemonk/awesome-docker)
