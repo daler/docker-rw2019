@@ -1,4 +1,5 @@
 results
 demos/demo/*.bam
-demos/demo2/SRR*
-demos/demo/*.sam
+demos/demo1/SRR*
+demos/demo2/*.pdf
+demos/demo2/*log*
