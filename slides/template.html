@@ -16,6 +16,26 @@
       .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; font-size: 15px; }
       .remark-slide-content { font-size: 16px;}
       .remark-slide-content h1 { font-size: 40px;}
+.remark-code{
+  /* Set "line-numbers-counter" to 0 */
+  counter-reset: line-numbers-counter;
+}
+
+.remark-code-line::before {
+  /* Increment "line-numbers-counter" by 1 */
+    counter-increment: line-numbers-counter;
+    content: counter(line-numbers-counter);
+    text-align: right;
+    width: 15px;
+    border-right: 1px solid #aaa;
+    display: inline-block;
+    color: #aaa;
+    margin-right: 10px;
+    padding: 0 5px;
+}
+
+
+
     </style>
   </head>
   <body>
@@ -27,7 +47,7 @@ PLACEHOLDERPLACEHOLDERPLACEHOLDER
     <script src="https://remarkjs.com/downloads/remark-latest.min.js">
     </script>
     <script>
-        var slideshow = remark.create({ratio: '1:1', countIncrementalSlides: false});
+        var slideshow = remark.create({ratio: '1:1', countIncrementalSlides: false, highlightSpans: true});
     </script>
   </body>
 </html>
