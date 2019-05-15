@@ -134,6 +134,21 @@ class: middle, center
 
 ---
 
+# About this example
+
+Uses real-world tools but on toy data
+
+Progressively builds to a sufficiently complex example you can reverse-engineer
+
+- view a BAM file
+- download data from SRA
+- run FastQC
+- run an R script and save a PDF from it
+
+Slides, code, scripts at https://github.com/daler/docker-rw2019
+
+---
+
 # Overview of BioContainers
 
 When working with Docker in bioinformatics, images for thousands of tools are
@@ -161,7 +176,11 @@ We will use an existing container for `samtools`.
 
 --
 
-So we want to use **`quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6`**
+So we want to use:
+
+```bash
+quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6
+```
 
 ---
 
@@ -225,7 +244,7 @@ docker run quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6 samtools
 
 # Interactive containers
 
-Use `-it` to drop into an interactive shell in the container.
+Use **`-it`** to drop into an interactive shell in the container.
 
 **Anything you do here is ephemeral.**
 
@@ -245,7 +264,9 @@ docker run -it quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6
 
 # View the downloaded file using the container
 
-The BAM file we downloaded is in binary format; to read it we use `samtools`.
+The BAM file we downloaded is in binary format
+
+To read it we use `samtools`.
 
 We might logically try the following.
 
@@ -272,8 +293,9 @@ What happened?
 
 # Make data available to the container
 
-A running docker container is isolated. It cannot see anything on your
-computer.
+A running docker container is isolated.
+
+By default it cannot see anything on your computer.
 
 We need to explicitly tell it what is available with **`-v`**.
 
@@ -290,9 +312,8 @@ docker run -v <host path>:<container path> <imagename>
 **Notes:**
 
 - Paths must be absolute
-- Use **`$(pwd)`** as a shortcut for "current directory".
 - Paths in the container are automatically created recursively
-- `-v` should come *before* the image name, otherwise you'll get errors like
+- **`-v`** should come *before* the image name, otherwise you'll get errors like
   this:
 
 ```text
@@ -548,7 +569,7 @@ Conventional format is username/label.
 Use your own Docker Hub username here if you're going to be uploading.
 
 ```bash
-docker build . -t daler/rw2019
+docker build . -t daler/docker-rw2019
 ```
 
 --
@@ -557,14 +578,14 @@ docker build . -t daler/rw2019
 
 - Execute the commands in the Dockerfile in the current directory (this may
   take some time)
-- Save the resulting image as `daler/rw2019`
+- Save the resulting image as `daler/docker-rw2019`
 
 --
 
 Optionally push to docker hub:
 
 ```bash
-docker push daler/rw2019
+docker push daler/docker-rw2019
 ```
 
 ---
@@ -602,7 +623,7 @@ sessionInfo()
 
 # Modified bash script
 
-Saved as `run2.sh`:
+Saved as `run.sh`:
 
 ```bash
 #!/bin/bash
@@ -620,8 +641,8 @@ Rscript demo.R
 ```bash
 docker run \
   -v $(pwd):/data \
-  daler/rw2019 \
-  /bin/bash run2.sh
+  daler/docker-rw2019 \
+  bash /data/run.sh
 ```
 
 **Explanation**
@@ -666,7 +687,6 @@ RUN apt-get update && apt-get install -y \
 
 - One container -> one Snakemake rule
 
-- One container -> entire environment for AWS instance
 ---
 
 # Resources
