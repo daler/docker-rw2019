@@ -401,11 +401,13 @@ docker run \
   directory `results`.
 - since the redirect `>` happens in the command executed by bash inside the
   container, we use container-appropriate paths.
-- **user/group ownership of created files is `root`**
+- On Linux, **user/group ownership of created files is `root`**
 
 ---
 
 # Modify the user
+
+Something like this may be necessary on Linux:
 
 ```bash
 mkdir -p results
@@ -476,6 +478,12 @@ SRR1574251.fastq.gz
 SRR1574251_fastqc.zip
 SRR1574251_fastqc.html
 ```
+
+--
+
+**Note:** Due to the way fastq-dump works, running with `-u $(id -u)` will
+crash it. Painful workarounds may be required if you don't want files owned by
+root.
 
 ---
 

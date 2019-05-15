@@ -1,4 +1,4 @@
 results
-demo/*.bam
-demo2/SRR*
-demo/*.sam
+demos/demo/*.bam
+demos/demo2/SRR*
+demos/demo/*.sam
