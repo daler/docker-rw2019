@@ -24,8 +24,10 @@ class: middle, center
 # Spring 2019 Reproducibility Workshop: "Containerization and Docker"
 
 .left[Ryan Dale, Ph.D.]
+.left[Scientific Information Officer, NICHD]
 .left[Head, NICHD Bioinformatics and Scientific Programming Core]
 
+Slides & code available at https://github.com/daler/docker-rw2019
 
 ---
 
@@ -89,6 +91,10 @@ have:
 Nevertheless, it is useful invest the effort to containerize especially at the
 end of an analysis for long-term reproducibility.
 
+--
+
+**...but it's hard.**
+
 ---
 
 # Terminology
@@ -131,7 +137,7 @@ Someone else can run that same image and get an identical running container.
 
 ---
 
-# Getting started
+# Get started
 
 Prerequisites:
 
@@ -150,7 +156,7 @@ class: middle, center
 
 ---
 
-## Overview of BioContainers
+# Overview of BioContainers
 
 When working with Docker in bioinformatics, images for thousands of tools are
 already available for your use.
@@ -162,7 +168,7 @@ We will use an existing container for `samtools`.
 
 ---
 
-## Finding an image to use
+# Find an image to use
 
 
 - Visit https://bioconda.github.io
@@ -181,7 +187,7 @@ So we want to use **`quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6`**
 
 ---
 
-## Download an example BAM file
+# Download an example BAM file
 
 Download a file to use for demonstrating passing data into containers.
 
@@ -202,7 +208,7 @@ https://github.com/daler/pybedtools/raw/master/pybedtools/test/data/y.bam
 
 ---
 
-## Running the container
+# Run the container
 
 ```bash
 docker run quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6
@@ -214,11 +220,12 @@ docker run quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6
 
 - download the image if needed
 - run the image as a new container
-- since there's no default command, nothing happened.
+- since there's no default command, after downloading and running nothing
+  happened.
 
 ---
 
-## Running the container again
+# Run the container again
 
 We need to give it a command to run (`samtools`):
 
@@ -230,7 +237,7 @@ docker run quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6 samtools
 
 **Explanation**
 
-- download the image if needed
+- download the image if needed (it didn't need to this time)
 - run the image as a new container
 - within that running container, call `samtools`
 - the help for `samtools` is printed to `stdout` (its default behavior
@@ -238,14 +245,14 @@ docker run quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6 samtools
 
 ---
 
-## Interactive containers
+# Interactive containers
 
 Use `-it` to drop into an interactive shell in the container.
 
 **Anything you do here is ephemeral.**
 
 ```bash
-docker run -it quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6 samtools
+docker run -it quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6
 ```
 
 --
@@ -258,7 +265,7 @@ docker run -it quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6 samtools
 
 ---
 
-## Try viewing the downloaded file
+# View the downloaded file using the container
 
 The BAM file we downloaded is in binary format; to read it we use `samtools`.
 
@@ -277,6 +284,7 @@ docker run quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6 \
 but this returns:
 
 ```
+open: No such file or directory
 [main_samview] fail to open "y.bam" for reading.
 ```
 
@@ -284,7 +292,7 @@ What happened?
 
 ---
 
-## Making data available to the container
+# Make data available to the container
 
 A running docker container is isolated. It cannot see anything on your
 computer.
@@ -317,7 +325,7 @@ executable file not found in $PATH": unknown.
 
 ---
 
-## Mounting the current directory
+# Mount the current directory to the container
 
 Use `-v` to mount local paths inside the container:
 
@@ -328,18 +336,6 @@ docker run \
 ```
 
 --
-
-**Explanation**
-
-- `$(pwd)` is evaluated on the host system
-- current working directory *outside* container becomes the directory `/data`
-  *inside* the container
-- `/data` was created automatically inside the container at run time
-- The result is that the container can see everything in the working directory
-  at `/data`, so the command run inside the container reflects this location
-  and we get output as expected
-
----
 
 Output should be:
 
@@ -354,7 +350,31 @@ AAGGGTCGT:DBR4KXP1:220:C27T3ACXX:7:1313:16438:83011     16      chr1    16286   
 
 ---
 
-## Getting data back out of the container
+# Mount the current directory to the container
+
+Use `-v` to mount local paths inside the container:
+
+```bash
+docker run \
+  -v $(pwd):/data quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6 \
+  samtools view data/y.bam
+```
+
+**Explanation**
+
+- `$(pwd)` is evaluated on the host system
+- current working directory *outside* container becomes the directory `/data`
+  *inside* the container
+- `/data` was created automatically inside the container at run time
+- The result is that the container can see everything in the working directory
+  at `/data`, so the command run inside the container reflects this location
+  and we get output as expected
+
+
+
+---
+
+# Get data back out of the container
 
 `stdout` comes back to the host.
 
@@ -378,7 +398,7 @@ docker run \
 
 ---
 
-## More complex input/output
+# More complex input/output
 
 Use `bash -c` to run more complex commands. This also demonstrates  mapping
 multiple locations to the container:
@@ -403,26 +423,52 @@ docker run \
   directory `results`.
 - since the redirect `>` happens in the command executed by bash inside the
   container, we use container-appropriate paths.
+- **user/group ownership of created files is `root`**
 
 ---
 
-## Combining multiple tools
+# Modify the user
 
-This downloads 100 reads from SRA and runs FastQC on the resulting file.
+```bash
+mkdir -p results
 
-Execute this bash script on the host. It communicates between containers by mounting the same directory to each.
+docker run \
+  -u $(id -u):$(id -g) \
+  -v $(pwd):/data \
+  -v $(pwd)/results:/tmp \
+  quay.io/biocontainers/samtools:0.1.19--h94a8ba4_6 \
+  bash -c "samtools view /data/y.bam > /tmp/result.sam"
+```
+
+**Explanation:**
+
+- Run docker as the current user and group (*`id -u`* returns the UID of the
+  current user)
+
+---
+
+# Combine multiple tools
+
+This script downloads 100 reads from SRA and runs FastQC on the resulting file.
+
+It uses a Docker container for sra-tools and another for FastQC.
+
+This script is executed on the host, and communicates between containers by
+mounting the same directory to each.
 
 ```bash
 #!/bin/bash
 
 # Download some FASTQ data using fastq-dump from sra-tools:
 docker run \
+  -u $(id -u):$(id -g) \
   -v $(pwd):/data \
   quay.io/biocontainers/sra-tools:2.9.1_1--h470a237_0 \
   bash -c "cd /data && fastq-dump -X 100 --gzip SRR1574251"
 
 # Run FastQC on the resulting file
 docker run \
+  -u $(id -u):$(id -g) \
   -v $(pwd):/data \
   quay.io/biocontainers/fastqc:0.11.8--1 \
   bash -c "fastqc /data/*.fastq.gz"
@@ -455,19 +501,21 @@ SRR1574251_fastqc.html
 
 ---
 
-## Building a custom container
+# Build a custom container
 
 BioContainers has containers for single tools.
 
-What if you need multiple R packages?
+What if we need multiple R packages in the same container?
 
-Use Bioconda to more easliy build a custom image.
+We can't combine images; we need to build a custom image.
+
+Use Bioconda to more easily build a custom image.
 
 ---
 
-## Dockerfiles
+# Dockerfiles
 
-A Dockerfile specifies how to build the container. The most
+A **Dockerfile** specifies how to build the container. The most
 common Dockerfile commands are:
 
 **`FROM`:** indicates which image should be used as a starting point. Here we use
@@ -481,7 +529,7 @@ inside the image.
 
 ---
 
-## `Dockerfile`
+# `Dockerfile`
 
 ```docker
 # This Dockerfile installs samtools, fastqc, R, and DESeq2
@@ -505,7 +553,7 @@ RUN conda install \
 
 ---
 
-## Build the image
+# Build the image
 
 Tags provide easier-to-remember labels.
 
@@ -535,7 +583,20 @@ docker push daler/rw2019
 
 ---
 
-## R script
+# Put it all together
+
+Run an R script, which is itself run by a bash script, all inside our new
+container.
+
+**Results:**
+
+- FASTQ file
+- FastQC report (HTML and zip)
+- PCA plot in PDF format
+
+---
+
+# R script
 
 Create an R script in the working directory.
 
@@ -553,7 +614,7 @@ sessionInfo()
 
 ---
 
-## Modified bash script
+# Modified bash script
 
 Saved as `run2.sh`:
 
@@ -568,7 +629,7 @@ Rscript demo.R
 
 ---
 
-## Run everything in a single container
+# Run everything in a single container
 
 ```bash
 docker run \
@@ -584,7 +645,7 @@ docker run \
 
 ---
 
-## Extra notes 1
+# Extra notes 1
 
 - When building locally and then pushing, *Docker Hub does not show
   Dockerfiles* since the Dockerfile is not included in the image itself. It is
@@ -606,7 +667,7 @@ RUN apt-get update && apt-get install -y \
 
 ---
 
-## Extra notes 2
+# Extra notes 2
 
 - Docker builds in layers, which are cached. Try to write Dockerfiles such that
   the earlier lines have less likelihood of needing to be changed.
@@ -622,7 +683,7 @@ RUN apt-get update && apt-get install -y \
 - One container -> entire environment for AWS instance
 ---
 
-## Resources
+# Resources
 
 - BioContainers [best-practices](https://biocontainers-edu.readthedocs.io/en/latest/best_practices.html)
 - [BioContainers quickstart](http://biocontainers-edu.biocontainers.pro/en/latest/running_example.html)
